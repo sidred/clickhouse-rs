@@ -20,6 +20,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub enum ValueRef<'a> {
+    Bool(bool),
     UInt8(u8),
     UInt16(u16),
     UInt32(u32),
@@ -71,6 +72,7 @@ impl<'a> Eq for ValueRef<'a> {}
 impl<'a> PartialEq for ValueRef<'a> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            (ValueRef::Bool(a), ValueRef::Bool(b)) => *a == *b,
             (ValueRef::UInt8(a), ValueRef::UInt8(b)) => *a == *b,
             (ValueRef::UInt16(a), ValueRef::UInt16(b)) => *a == *b,
             (ValueRef::UInt32(a), ValueRef::UInt32(b)) => *a == *b,
@@ -120,6 +122,7 @@ impl<'a> PartialEq for ValueRef<'a> {
 impl<'a> fmt::Display for ValueRef<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            ValueRef::Bool(v) => fmt::Display::fmt(v, f),
             ValueRef::UInt8(v) => fmt::Display::fmt(v, f),
             ValueRef::UInt16(v) => fmt::Display::fmt(v, f),
             ValueRef::UInt32(v) => fmt::Display::fmt(v, f),
@@ -194,6 +197,7 @@ impl<'a> fmt::Display for ValueRef<'a> {
 impl<'a> convert::From<ValueRef<'a>> for SqlType {
     fn from(source: ValueRef<'a>) -> Self {
         match source {
+            ValueRef::Bool(_) => SqlType::Bool,
             ValueRef::UInt8(_) => SqlType::UInt8,
             ValueRef::UInt16(_) => SqlType::UInt16,
             ValueRef::UInt32(_) => SqlType::UInt32,
@@ -259,6 +263,7 @@ impl<'a> ValueRef<'a> {
 impl<'a> From<ValueRef<'a>> for Value {
     fn from(borrowed: ValueRef<'a>) -> Self {
         match borrowed {
+            ValueRef::Bool(v) => Value::Bool(v),
             ValueRef::UInt8(v) => Value::UInt8(v),
             ValueRef::UInt16(v) => Value::UInt16(v),
             ValueRef::UInt32(v) => Value::UInt32(v),
@@ -349,6 +354,7 @@ from_number! {
 impl<'a> From<&'a Value> for ValueRef<'a> {
     fn from(value: &'a Value) -> ValueRef<'a> {
         match value {
+            Value::Bool(v) => ValueRef::Bool(*v),
             Value::UInt8(v) => ValueRef::UInt8(*v),
             Value::UInt16(v) => ValueRef::UInt16(*v),
             Value::UInt32(v) => ValueRef::UInt32(*v),
@@ -443,6 +449,7 @@ impl<'a> From<ValueRef<'a>> for AppDateTime {
 }
 
 value_from! {
+    bool: Bool,
     u8: UInt8,
     u16: UInt16,
     u32: UInt32,
@@ -470,6 +477,8 @@ mod test {
 
         assert_eq!("text".to_string(), format!("{}", ValueRef::String(b"text")));
 
+        assert_eq!("true".to_string(), format!("{}", ValueRef::Bool(true)));
+        assert_eq!("false".to_string(), format!("{}", ValueRef::Bool(false)));
         assert_eq!("42".to_string(), format!("{}", ValueRef::UInt8(42)));
         assert_eq!("42".to_string(), format!("{}", ValueRef::UInt16(42)));
         assert_eq!("42".to_string(), format!("{}", ValueRef::UInt32(42)));
@@ -548,6 +557,8 @@ mod test {
 
     #[test]
     fn test_value_from_ref() {
+        assert_eq!(Value::from(ValueRef::Bool(true)), Value::Bool(true));
+        assert_eq!(Value::from(ValueRef::Bool(false)), Value::Bool(false));
         assert_eq!(Value::from(ValueRef::UInt8(42)), Value::UInt8(42));
         assert_eq!(Value::from(ValueRef::UInt16(42)), Value::UInt16(42));
         assert_eq!(Value::from(ValueRef::UInt32(42)), Value::UInt32(42));
@@ -603,6 +614,7 @@ mod test {
 
     #[test]
     fn test_get_sql_type() {
+        assert_eq!(SqlType::from(ValueRef::Bool(true)), SqlType::Bool);
         assert_eq!(SqlType::from(ValueRef::UInt8(42)), SqlType::UInt8);
         assert_eq!(SqlType::from(ValueRef::UInt16(42)), SqlType::UInt16);
         assert_eq!(SqlType::from(ValueRef::UInt32(42)), SqlType::UInt32);

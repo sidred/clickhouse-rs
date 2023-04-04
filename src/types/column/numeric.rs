@@ -211,6 +211,7 @@ where
 
             Value::Float32(x) => ValueRef::Float32(x),
             Value::Float64(x) => ValueRef::Float64(x),
+            Value::Bool(x) => ValueRef::Bool(x),
 
             _ => panic!("can't convert value to value_ref."),
         }

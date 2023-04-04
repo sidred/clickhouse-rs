@@ -331,6 +331,7 @@ impl<'a> FromSql<'a> for DateTime<Tz> {
 }
 
 from_sql_impl! {
+    bool: Bool,
     u8: UInt8,
     u16: UInt16,
     u32: UInt32,

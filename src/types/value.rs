@@ -25,6 +25,7 @@ pub(crate) type AppDate = Date<Tz>;
 /// Client side representation of a value of Clickhouse column.
 #[derive(Clone, Debug)]
 pub enum Value {
+    Bool(bool),
     UInt8(u8),
     UInt16(u16),
     UInt32(u32),
@@ -77,6 +78,7 @@ impl Eq for Value {}
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            (Value::Bool(a), Value::Bool(b)) => *a == *b,
             (Value::UInt8(a), Value::UInt8(b)) => *a == *b,
             (Value::UInt16(a), Value::UInt16(b)) => *a == *b,
             (Value::UInt32(a), Value::UInt32(b)) => *a == *b,
@@ -144,6 +146,7 @@ impl PartialEq for Value {
 impl Value {
     pub(crate) fn default(sql_type: SqlType) -> Value {
         match sql_type {
+            SqlType::Bool => Value::Bool(true),
             SqlType::UInt8 => Value::UInt8(0),
             SqlType::UInt16 => Value::UInt16(0),
             SqlType::UInt32 => Value::UInt32(0),
@@ -183,6 +186,7 @@ impl Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Value::Bool(ref v) => fmt::Display::fmt(v, f),
             Value::UInt8(ref v) => fmt::Display::fmt(v, f),
             Value::UInt16(ref v) => fmt::Display::fmt(v, f),
             Value::UInt32(ref v) => fmt::Display::fmt(v, f),
@@ -263,6 +267,7 @@ impl fmt::Display for Value {
 impl From<Value> for SqlType {
     fn from(source: Value) -> Self {
         match source {
+            Value::Bool(_) => SqlType::Bool,
             Value::UInt8(_) => SqlType::UInt8,
             Value::UInt16(_) => SqlType::UInt16,
             Value::UInt32(_) => SqlType::UInt32,
@@ -294,7 +299,7 @@ impl From<Value> for SqlType {
             Value::DateTime64(_, params) => {
                 let (precision, tz) = params;
                 SqlType::DateTime(DateTimeType::DateTime64(precision, tz))
-            }
+            },
             Value::Map(k, v, _) => SqlType::Map(k, v),
         }
     }
@@ -411,7 +416,7 @@ impl From<Uuid> for Value {
 
 impl From<bool> for Value {
     fn from(v: bool) -> Value {
-        Value::UInt8(if v { 1 } else { 0 })
+        Value::Bool(v)
     }
 }
 
@@ -546,6 +551,7 @@ impl From<Value> for AppDateTime {
 }
 
 from_value! {
+    bool: Bool,
     u8: UInt8,
     u16: UInt16,
     u32: UInt32,
@@ -651,6 +657,14 @@ mod test {
     }
 
     #[test]
+    fn test_bool() {
+        let v = Value::from(true);
+        assert_eq!(v.to_string(), "true", "expect true got {}", v.to_string());
+        let v = Value::from(false);
+        assert_eq!(v.to_string(), "false", "expect false got {}", v.to_string());
+    }
+
+    #[test]
     fn test_uuid() {
         let uuid = Uuid::parse_str("936da01f-9abd-4d9d-80c7-02af85c822a8").unwrap();
         let v = Value::from(uuid);
@@ -683,11 +697,11 @@ mod test {
     }
 
     #[test]
-    fn test_boolean() {
+    fn test_boolean_xx() {
         let v = Value::from(false);
         let w = Value::from(true);
-        assert_eq!(v, Value::UInt8(0));
-        assert_eq!(w, Value::UInt8(1));
+        assert_eq!(v, Value::Bool(false));
+        assert_eq!(w, Value::Bool(true));
     }
 
     #[test]
